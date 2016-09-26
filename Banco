@@ -1,0 +1,48 @@
+#include<stdlib.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<pthread.h>
+#include<sys/ipc.h>
+#include<semaphore.h>
+
+
+void transfere(void *);
+void deposita(void *);
+int deposito = 100;
+
+int main(){
+  pthread_t  transfere_t,deposita_t;
+  pthread_create(&transfere_t, NULL, (void *) transfere, NULL);
+	pthread_create(&deposita_t, NULL, (void *) deposita, NULL);
+	pthread_join(transfere_t, NULL);
+	pthread_join(deposita_t, NULL);
+  return EXIT_SUCCESS;
+}
+
+void deposita (void *n){
+	while(1){
+    int valor = rand() % 100;
+    if(valor > 0){
+      deposito = deposito + valor;
+      fprintf(stderr,"Usuario depositando valor %d...\n",valor);
+    }else{
+      fprintf(stderr, "Valor não pode ser depositado\n");
+    }
+
+		sleep(5);
+	}
+}
+
+void transfere(void *n){
+	while(1){
+    int valor = rand() % 100;
+    if(valor > deposito){
+      fprintf(stderr, "Valor nao pode ser transferido\n");
+    }else{
+      deposito = deposito - valor;
+      fprintf(stderr,"Usuario transferindo valor %d...\n",valor);
+    }
+
+		sleep(1);
+	}
+}

@@ -3,31 +3,32 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<sys/ipc.h>
-#include <sys/types.h>
-#include <sys/shm.h>
-#include <time.h>
+#include<sys/types.h>
+#include<sys/shm.h>
+#include<time.h>
 #include<semaphore.h>
 
 #define C1 3342
 #define C2 2145
 #define	C3 5543
+#define VMAX 100
+#define SHMSZ 3
 
 
-
-int vendas[3][100], cache[3][10];
+int vendas[3][VMAX], cache[3][10];
 
 void rapido(void *);
 void comum(void *);
 void inicializa_vendas();
 	
 int banco = 0;
+int *shm;
 
 int main(){
  
 
 	int shmid;
 	key_t key;
-	int *shm;
 	long pid_filho;
 	int i;
 	
@@ -48,13 +49,16 @@ int main(){
 	pid_filho = fork();		
 	
 	if(pid_filho == 0){
-		while(true){
+		while(1){
 			while(shm[0] == 0);	
 			for(i = 0; i < 3; i++)
-				if(shm[0] == vendas [i][0]){
-					vendas[i][vendas[i][1]] = shm[1];
-					vendas[i][1]++;
-					fprintf(stdout, "Filho produziu %d: %d\n", i, shm[1]);
+				if(shm[0] == vendas [i][0] && vendas[i][2] < VMAX){
+					vendas[i][vendas[i][2]] = shm[1];	// ultima posicao escrita do vetor
+					vendas[i][1] += shm[1];
+					banco += shm[1];
+					vendas[i][2]++;
+					fprintf(stdout, "Filho produziu %d: %d, posicao %d\n ", i, shm[1], vendas[i][2]);
+					shm[0]=0;
 				}
 		
 		}
@@ -63,11 +67,15 @@ int main(){
 		
 	}else if (pid_filho != 0){
 		
-		pthread_t rapido_t,comum_t;
-		pthread_create(&rapido_t, NULL, (void *) rapido, NULL);
-		pthread_create(&comum_t, NULL, (void *) comum, NULL);
-		pthread_join(rapido_t, NULL);
-		pthread_join(comum_t, NULL);
+		pthread_t caixa1_t, caixa2_t, caixa3_t;
+
+
+		pthread_create(&caixa1_t, NULL, (void *) caixa, NULL);
+		pthread_create(&caixa2_t, NULL, (void *) caixa, NULL);
+		pthread_create(&caixa3_t, NULL, (void *) caixa, NULL);
+		pthread_join(caixa1_t, NULL);
+		pthread_join(caixa2_t, NULL);
+		pthread_join(caixa3_t, NULL);
 		
 		
 		
@@ -88,35 +96,28 @@ int main(){
   return EXIT_SUCCESS;
 }
 
-void rapido (void *n){
+void caixa (void *n){
 	while(1){
     int valor = rand() % 100;
     if(valor > 0){
-      banco = banco + valor;
+    	shm[0]= C1;
+	shm[1] = valor;
       fprintf(stderr,"Caixa rapido inserindo valor de R$ %d\n",valor);
     }
 		sleep(2);
 	}
 }
 
-void comum(void *n){
-  while(1){
-    int valor = rand() % 200;
-    if(valor > 0){
-      banco = banco + valor;
-      fprintf(stderr,"Caixa comum inserindo valor de R$ %d\n",valor);
-    }
-		sleep(4);
-	}
-}
-
 void inicializa_vendas(){
-	vendas[1][0] = C1; //primeira posicao do vetor armazena o ID do caixa
-	vendas[1][1] = 2; // segunda armazena a ultima posicao escrita no vetor inicializada com 2 pois sera a primeira posicao onde vai conter os valores gerados
+	vendas[0][0] = C1; //primeira posicao do vetor armazena o ID do caixa
+	vendas[0][1] = 0; // segunda armazena o total que o caixa ja produziu em valor
+	vendas[0][2] = 3; // terceira armazena a ultima posicao escrita no vetor, inicializada com 3 pois sera a primeira posicao onde vai conter os valores gerados
 	
-	vendas[2][0] = C2;
-	vendas[2][1] = 2;
-	
-	vendas[3][0] = C3;
-	vendas[3][1] = 2;	
+	vendas[1][0] = C2;
+	vendas[1][1] = 0;
+	vendas[1][2] = 3;
+
+	vendas[2][0] = C3;
+	vendas[2][1] = 0;
+	vendas[2][2] = 3;	
 }

@@ -15,15 +15,17 @@
 #define SHMSZ 3
 
 
-int vendas[3][VMAX];
 
-void rapido(void *);
-void comum(void *);
+
+void caixa(void *);
+void gerenciador_vendas(void *);
 void inicializa_vendas();
 	
 int banco = 0;
+int espera[3];
+
 int *shm;
-sem_t processa_dados;
+sem_t fila_espera;
 sem_t mutex;
 
 int main(){
@@ -33,8 +35,8 @@ int main(){
 	key_t key;
 	long pid_filho;
 	int i;
-	
-	
+	espera[0]= 0;
+	srand(time(NULL));
 	
 	key = 567194;
 
@@ -48,10 +50,13 @@ int main(){
 		exit(1);
 	}
 	
-	inicializa_vendas();
+	
 	pid_filho = fork();		
 	
 	if(pid_filho == 0){
+		int vendas[3][VMAX];
+		inicializa_vendas(&vendas);
+		
 		while(1){
 			while(shm[0] == 0);	
 			for(i = 0; i < 3; i++)
@@ -70,14 +75,15 @@ int main(){
 		
 	}else if (pid_filho != 0){
 		sem_init(&mutex, 0, 1);
-		sem_init(&processa_dados, 0, 0);
+		sem_init(&fila_espera, 0, 0);
 		
-		pthread_t caixa1_t, caixa2_t, caixa3_t;
+		pthread_t caixa1_t, caixa2_t, caixa3_t, gerenciador;
 
-
+		pthread_create(&gerenciador, NULL, (void *) gerenciador_vendas, NULL);
 		pthread_create(&caixa1_t, NULL, (void *) caixa, NULL);
 		pthread_create(&caixa2_t, NULL, (void *) caixa, NULL);
 		pthread_create(&caixa3_t, NULL, (void *) caixa, NULL);
+		pthread_join(gerenciador_vendas, NULL);
 		pthread_join(caixa1_t, NULL);
 		pthread_join(caixa2_t, NULL);
 		pthread_join(caixa3_t, NULL);
@@ -87,36 +93,51 @@ int main(){
 		
 		
 	}
-	
- 
- 
- 
- 
- 
 
- 
-	
-	
-	
   return EXIT_SUCCESS;
 }
+
+
+
+
+
 
 void caixa (void *n){
 	while(1){
     int valor = rand() % 100;
-	int n_caixa = rand()%2 // obtem um numero aleatorio entre a quantidade de caixas
-    if(valor > 0){
-		sem_wait(&mutex);
-    	shm[0]= vendas[n_caixa][0];
-		shm[1] = valor;
-      fprintf(stderr,"Caixa de R$ %d\n",valor);
-	  sem_post(&mutex);
-    }
-		sleep(2);
+	int n_caixa = rand()%3 // obtem um numero aleatorio entre a quantidade de caixas
+    while(valor > 0){
+			sem_wait(&mutex);
+		if(sem_wait(&mutex) == 0)
+			shm[0]= vendas[n_caixa][0];
+			shm[1] = valor;
+			fprintf(stderr,"Caixa de %d gravou R$ %d\n",vendas[n_caixa][0], valor);
+			valor = 0;
+			sem_post(&mutex);
+		}else {
+			printf("Caixa %d esperara com valor: %d ", vendas[n_caixa], valor);
+		}
+		sleep(rand()%4);
 	}
 }
 
-void inicializa_vendas(){
+
+void gerenciador_vendas(void *n){
+	while(1){
+		while(1){
+		sem_wait(&fila_espera); //down fila
+		sem_wait(&mutex); //down mutex
+		espera[0]=0;
+		shm[0]= espera[1];
+		shm[1]= espera[2];
+		sem_post(&mutex);		
+		
+	}
+	
+}
+
+
+void inicializa_vendas(int *vendas[3][VMAX]){
 	
 	
 	

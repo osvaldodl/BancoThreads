@@ -45,9 +45,16 @@ int main(){
 	pid_filho = fork();		
 	
 	if(pid_filho == 0){
+		while(true){
+			while(shm[0] == 0);	
+			for(i = 0; i < 3; i++)
+				if(shm[0] == vendas [i][0]){
+					vendas[i][vendas[i][1]] = shm[1];
+					vendas[i][1]++;
+					fprintf(stdout, "Filho produziu %d: %d\n", i, shm[1]);
+				}
 		
-		
-		
+		}
 		
 		
 		
@@ -101,7 +108,12 @@ void comum(void *n){
 }
 
 void inicializa_vendas(){
-	vendas[1][0] = C1;
+	vendas[1][0] = C1; //primeira posicao do vetor armazena o ID do caixa
+	vendas[1][1] = 2; // segunda armazena a ultima posicao escrita no vetor inicializada com 2 pois sera a primeira posicao onde vai conter os valores gerados
+	
 	vendas[2][0] = C2;
-	vendas[3][0] = C3;	
+	vendas[2][1] = 2;
+	
+	vendas[3][0] = C3;
+	vendas[3][1] = 2;	
 }

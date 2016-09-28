@@ -3,8 +3,10 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<sys/ipc.h>
+#include <sys/types.h>
+#include <sys/shm.h>
+#include <time.h>
 #include<semaphore.h>
-
 
 #define C1 3342
 #define C2 2145
@@ -16,7 +18,8 @@ int vendas[3][100], cache[3][10];
 
 void rapido(void *);
 void comum(void *);
-
+void inicializa_vendas();
+	
 int banco = 0;
 
 int main(){

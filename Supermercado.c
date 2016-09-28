@@ -15,7 +15,7 @@
 #define SHMSZ 3
 
 
-int vendas[3][VMAX], cache[3][10];
+int vendas[3][VMAX];
 
 void rapido(void *);
 void comum(void *);
@@ -23,6 +23,8 @@ void inicializa_vendas();
 	
 int banco = 0;
 int *shm;
+sem_t processa_dados;
+sem_t mutex;
 
 int main(){
  
@@ -31,6 +33,7 @@ int main(){
 	key_t key;
 	long pid_filho;
 	int i;
+	
 	
 	
 	key = 567194;
@@ -66,6 +69,8 @@ int main(){
 		
 		
 	}else if (pid_filho != 0){
+		sem_init(&mutex, 0, 1);
+		sem_init(&processa_dados, 0, 0);
 		
 		pthread_t caixa1_t, caixa2_t, caixa3_t;
 
@@ -99,16 +104,22 @@ int main(){
 void caixa (void *n){
 	while(1){
     int valor = rand() % 100;
+	int n_caixa = rand()%2 // obtem um numero aleatorio entre a quantidade de caixas
     if(valor > 0){
-    	shm[0]= C1;
-	shm[1] = valor;
-      fprintf(stderr,"Caixa rapido inserindo valor de R$ %d\n",valor);
+		sem_wait(&mutex);
+    	shm[0]= vendas[n_caixa][0];
+		shm[1] = valor;
+      fprintf(stderr,"Caixa de R$ %d\n",valor);
+	  sem_post(&mutex);
     }
 		sleep(2);
 	}
 }
 
 void inicializa_vendas(){
+	
+	
+	
 	vendas[0][0] = C1; //primeira posicao do vetor armazena o ID do caixa
 	vendas[0][1] = 0; // segunda armazena o total que o caixa ja produziu em valor
 	vendas[0][2] = 3; // terceira armazena a ultima posicao escrita no vetor, inicializada com 3 pois sera a primeira posicao onde vai conter os valores gerados

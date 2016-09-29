@@ -61,7 +61,7 @@ int main(){
 
 	if(pid_filho == 0){
 
-		int vendas[3][VMAX],i , banco =0;// banco armazena o valor total de todos os caixas
+		int vendas[QTDC][VMAX],i , banco =0;// banco armazena o valor total de todos os caixas
 		inicializa_vendas(vendas);
 		
 		while(1){
